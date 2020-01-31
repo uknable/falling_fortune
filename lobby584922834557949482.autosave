@@ -1,0 +1,266 @@
+   // import oscP5.*;
+
+// OscP5 oscP5;
+
+boolean first = false;
+Stick stick;
+
+int canvasWidth = 607;
+int canvasHeight = 256;
+
+int animationX = 1000;
+int animationY = 600;
+int mirrorFrames = 5;
+
+
+PImage[] mirror = new PImage[mirrorFrames];
+PImage mask;
+
+void setup() {
+    
+    size(863, 607, P3D);
+
+    background(255);
+
+    mask = loadImage("mask_neg.png");
+
+    //loading broken mirror frames
+    for(int i=0; i<mirror.length; i++) {
+        if(i < 10) {
+            mirror[i] = loadImage("mirror_png/broken_mirror0" + str(i) + ".png");
+        } else {
+            mirror[i] = loadImage("mirror_png/broken_mirror" + str(i) + ".png");
+        }
+        mirror[i].resize(animationX, animationY);
+        
+    }
+    println("mirror loaded");
+    
+    // oscP5 = new OscP5(this, 10000);
+
+}
+
+class Stick {
+    boolean isRotating = true;
+    boolean zoomed = false;
+    boolean playAnimation = false;
+
+    float imageScaling = 0;
+    
+    int randomR = int(random(255));
+    int randomG = int(random(255));
+    int randomB = int(random(255));
+
+    int animationFrame = 0;
+
+    int initFrameCount = frameCount;
+    int lastFrameCount;
+
+    float finalXrotation, finalYrotation, finalZrotation;
+
+    float lerpRotationRate;
+    float lerpZoomRate;
+
+    String fortuneNum = str(50); //2-fish story,  82-water lily, 4-mirror
+    int yPos = 0;
+    int zPos = 0;
+    int fallSpeed = 5;
+
+    float xRotation, yRotation, zRotation;
+    int xRotationRate = int(random(16, 64));
+    int yRotationRate = int(random(16, 64));
+    int zRotationRate = int(random(16, 64));
+
+    int boxXY = 20; //44.5
+    int boxZ = 50;
+    int bodyZ = 200;
+    int[] headSize = { boxXY, boxXY, boxZ};
+    int[] bodySize = { boxXY, boxXY, bodyZ-boxZ};
+
+    void display() {
+        yPos += fallSpeed;
+
+        
+
+        push();
+
+        //translate to set rotation origin
+        translate(canvasWidth + canvasHeight/2, yPos, 0); 
+        
+        if (isRotating) {
+
+            rotateX((PI+frameCount)/xRotationRate);
+            rotateY((PI+frameCount)/yRotationRate);
+            rotateZ((PI+frameCount)/zRotationRate);
+
+            lastFrameCount = frameCount - initFrameCount;
+
+        } else {
+
+            finalXrotation = (PI+lastFrameCount)/xRotationRate;
+            finalYrotation = (PI+lastFrameCount)/yRotationRate;
+            finalZrotation = (PI+lastFrameCount)/zRotationRate;
+
+            stickRepos();
+            
+        }
+
+
+        //draw body here
+        noStroke();
+        fill(248, 160, 60);
+        box(bodySize[0], bodySize[1], bodySize[2]);
+
+        //translate forward to draw head
+        translate(0, 0, bodyZ/2);
+        fill(169, 52, 42);
+        box(headSize[0], headSize[1], headSize[2]);
+
+        fill(255);
+
+        // to make text bold, have to use textFont() and load a bold font
+        textSize(12);
+        // draw text on the head
+        rotateX(-PI/2);
+        text(fortuneNum, -(boxXY-5)/2, 0, (boxXY/2)+1);
+        rotateY(PI);
+        text(fortuneNum, -(boxXY-5)/2, 0, (boxXY/2)+1);
+
+
+        pop();
+        
+
+        if (yPos >= height-50) {
+
+            fallSpeed = 0;
+            isRotating = false;
+
+        }
+
+        if(zoomed) {
+            playAnimation();
+        }
+    }
+
+    void stickRepos() {
+
+        float xlerpRadians = lerp((PI+frameCount)/xRotationRate, PI/2, lerpRotationRate);
+        float ylerpRadians = lerp((PI+frameCount)/yRotationRate, 0, lerpRotationRate);
+        float zlerpRadians = lerp((PI+frameCount)/zRotationRate, 0, lerpRotationRate);
+
+        rotateX(xlerpRadians);
+        rotateY(ylerpRadians);
+        rotateZ(zlerpRadians);
+
+        if (lerpRotationRate < 1.0) {
+            lerpRotationRate += 0.005;
+        } else {
+            lerpRotationRate = 1;
+
+            zoomStick();
+        }
+    }
+
+    void zoomStick() {
+
+        float yfinalZoom = 50;
+        float zfinalZoom = 20;
+
+        float yLerpZoom = lerp(0, yfinalZoom, lerpZoomRate);
+        float zLerpZoom = lerp(0, zfinalZoom, lerpZoomRate);
+
+        translate(0, yLerpZoom, zLerpZoom);
+
+        if (lerpZoomRate < 1.0) {
+            lerpZoomRate += 0.01;
+        } else {
+            lerpZoomRate = 1;
+            zoomed = true;
+        }
+    }
+
+    void playAnimation() {
+        // used in frameCount % animationFrameRate to determine play speed
+        // higher the animationFrameRate, the slower the play speed
+        int animationFrameRate = 4;
+
+        float maxImageScale = 0.2;
+
+        push();
+        
+        int rectPadding = 100;
+
+        translate(width/2, height/2);
+
+        if(imageScaling < maxImageScale) {
+            imageScaling += 0.01;
+        }  else {
+            imageScaling = maxImageScale;
+            playAnimation = true;
+        }
+
+        scale(imageScaling);
+        rectMode(CENTER);
+        noStroke();
+        fill(randomR, randomG, randomB);
+        rect(0, 0, animationX+rectPadding, animationY+rectPadding);
+
+        
+        if(playAnimation && frameCount % animationFrameRate == 0) {
+            animationFrame += 1;
+        }
+
+        imageMode(CENTER);
+        image(mirror[(animationFrame)%mirrorFrames], 0, 0);
+
+        pop();
+    }
+
+}
+
+void draw() {
+
+    if (first) {
+        background(125);
+        stick.display();
+
+        // loadPixels();
+
+        // for (int i=0; i<width; i++) {
+        //     for (int j=0; j<height; j++) {
+        //         pixels[j*height+i] = pixels[(width*height)-1-(j*height+i)];
+        //     }
+        // }
+
+        // updatePixels();
+
+        noFill();
+        stroke(255, 0, 0);
+        rect(1, 0, 78, 128); //museum door wall, rgb
+        rect(79, 0, 293, 128); //ceiling, rgb
+        rect(1, 128, 78, 128); //museum door wall, grayscale
+        rect(79, 128, 293, 128); //ceiling, grayscale
+        rect(373, 0, 78, 249); //left lift, rgb
+        rect(451, 0, 78, 249); //centre lift, rgb
+        rect(527, 0, 80, 249); //right lift, rgb
+
+    }
+
+}
+
+void keyReleased() {
+  if (keyCode == 49) {
+
+    stick = new Stick();
+    first = true;
+  } 
+}
+
+
+// void oscEvent(OscMessage theOscMessage) {
+//     if(theOscMessage != null && !first) {
+//         stick = new Stick();
+
+//         first = true;
+//     }
+// }

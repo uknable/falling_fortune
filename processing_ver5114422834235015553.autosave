@@ -1,0 +1,91 @@
+boolean first = false;
+Stick stick;
+
+int animationX = 100;
+int animationY = 60;
+int mirrorFrames = 85;
+
+PImage[] mirror = new PImage[mirrorFrames];
+
+void setup() {
+    size(500, 600, P3D);
+    background(255);
+
+    //loading broken mirror frames
+    for(int i = 0; i<mirror.length; i++) {
+        if(i < 10) {
+            mirror[i] = loadImage("mirror_png/broken_mirror0" + str(i) + ".png");
+        } else {
+            mirror[i] = loadImage("mirror_png/broken_mirror" + str(i) + ".png");
+        }
+        mirror[i].resize(animationX, animationY);
+    }
+    
+    println("mirror loaded");
+
+}
+
+class Stick {
+    boolean isRotating = true;
+    int yPos = 0;
+    int fallSpeed = 2;
+    int boxXYZ = 20;
+    int bodyZ = 200;
+    int[] headSize = { boxXYZ, boxXYZ, boxXYZ };
+    int[] bodySize = { boxXYZ, boxXYZ, bodyZ-boxXYZ };
+
+    void display() {
+        yPos += fallSpeed;
+
+        push();
+
+        //translate to set rotation origin
+        translate(width/2, yPos, 0); 
+        
+        if (isRotating) {
+        rotateX((PI+frameCount)/32);
+        rotateY((PI+frameCount)/64);
+        rotateZ((PI+frameCount)/16);
+        }
+
+        //draw body here
+        noStroke();
+        fill(255, 185, 0);
+        box(bodySize[0], bodySize[1], bodySize[2]);
+
+        //translate forward to draw head
+        translate(0, 0, bodyZ/2);
+        fill(255, 0, 0);
+        box(headSize[0], headSize[1], headSize[2]);
+
+        pop();
+
+        if (yPos >= height) {
+            fallSpeed = 0;
+            isRotating = false;
+            playAnimation();
+        }
+    }
+
+    void playAnimation() {
+        image( mirror[frameCount%mirrorFrames], width/2-animationX/2, height-animationY);
+    }
+
+}
+
+void draw() {
+    if (first) {
+        background(125);
+         stick.display();
+    }
+
+}
+
+void keyReleased() {
+  if (keyCode == 49 && !first) {
+   
+    stick = new Stick();
+
+    first = true;
+  } 
+}
